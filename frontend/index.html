@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reminder App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .hidden {
+        display: none;
+      }
+      .form-container {
+        margin-top: 20px;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+      .form-group label {
+        margin-right: 10px;
+      }
+      #reminderList {
+        margin-top: 20px;
+      }
+      
+      .reminder-card {
+      padding: 15px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+
+    .reminder-field {
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .reminder-value {
+      margin-left: 10px;
+      color: #333;
+    }
+
+    .reminders-container {
+      padding: 20px;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome To Your Reminders</h1>
+    <button id="createReminderBtn">Create Reminder</button>
+    <button id="fetchReminderBtn">Show All Reminders</button>
+
+    <!-- Form (hidden initially) -->
+    <div id="reminderForm" class="form-container hidden">
+      <div class="form-group">
+        <label for="title">Reminder Title:</label>
+        <input type="text" id="title" />
+      </div>
+      <div class="form-group">
+        <label for="description">Reminder Description:</label>
+        <input type="text" id="description" />
+      </div>
+      <div class="form-group">
+        <label for="remindTime">Remind Me At:</label>
+        <input type="datetime-local" id="remindTime" />
+      </div>
+      <div class="form-group">
+        <label for="frequency">Repeat Frequency:</label>
+        <select id="frequency">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+      </div>
+      <button id="saveReminderBtn">Save</button>
+    </div>
+
+    <!-- Reminder List -->
+    <div id="reminderList">
+      <h2>Reminders</h2>
+      <ul id="reminderListItems"></ul>
+      <div class="reminders-container" id="remindersContainer">
+        <!-- Fetched reminders will be dynamically inserted here -->
+      </div>
+    <p id="output"></p>
+    </div>
+
+    <script>
+      const createReminderBtn = document.getElementById("createReminderBtn");
+      const fetchReminderBtn = document.getElementById("fetchReminderBtn");
+      const reminderForm = document.getElementById("reminderForm");
+      const saveReminderBtn = document.getElementById("saveReminderBtn");
+      const reminderListItems = document.getElementById("reminderListItems");
+
+      // Show form when 'Create Reminder' button is clicked
+      createReminderBtn.addEventListener("click", () => {
+        alert('Create button clicked');
+        reminderForm.classList.toggle("hidden");
+      });
+
+      fetchReminderBtn.addEventListener("click", async () => {
+        await fetchReminders();
+      });
+
+      // Save reminder and fetch reminders from API
+      saveReminderBtn.addEventListener("click", async () => {
+        alert('save button clicked');
+        
+        const name = document.getElementById("title").value;
+        alert(name);
+        const description = document.getElementById("description").value;
+        alert(description);
+        const remindTime = document.getElementById("remindTime").value;
+        alert(remindTime);
+        let original_day_time;
+        try {
+            const remindTimeDate = new Date(remindTime);
+            original_day_time = remindTimeDate.getTime();
+        } catch (error) {
+            alert(error.message);
+        }
+        
+        
+        const repeatFrequency = document.getElementById("frequency").value;
+        alert(repeatFrequency);
+
+        // Call the API to save the reminder
+        alert('caling saveReminder');
+        await saveReminder({ name, description, original_day_time, repeatFrequency });
+
+        // Fetch all reminders after saving
+        await fetchReminders();
+      });
+
+      // Function to save reminder using API
+      async function saveReminder(reminder) {
+        try {
+            alert('caling create api', reminder);
+            
+          const response = await fetch("http://localhost:5000/reminder/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reminder),
+          });
+          if (!response.ok) {
+            throw new Error("Failed to save reminder");
+          }
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+
+      // Function to fetch all reminders
+      async function fetchReminders() {
+        try {
+          const response = await fetch("http://localhost:5000/reminder/getAll");
+          const reminders = await response.json();
+          displayRemindersCard(reminders.data);
+        } catch (error) {
+          alert("Failed to fetch reminders", error.message);
+        }
+      }
+
+      function displayRemindersCard(reminders) {
+        // Populate the reminders in a row-based format
+        const remindersContainer = document.getElementById('remindersContainer');
+        remindersContainer.innerHTML = ''; // Clear existing reminders
+
+        reminders.forEach(reminder => {
+          // Create a container div for each reminder (reminder card)
+          const reminderCard = document.createElement('div');
+          reminderCard.className = 'reminder-card';
+          
+          // Create and append title row
+          const titleRow = document.createElement('div');
+          titleRow.className = 'reminder-field';
+          titleRow.innerHTML = `Title: <span class="reminder-value">${reminder.name}</span>`;
+          reminderCard.appendChild(titleRow);
+
+          // Create and append title row
+          const descRow = document.createElement('div');
+          descRow.className = 'reminder-field';
+          descRow.innerHTML = `Title: <span class="reminder-value">${reminder.description}</span>`;
+          reminderCard.appendChild(descRow);
+          
+          // Create and append remind time row
+          const remindAtRow = document.createElement('div');
+          const remindAtDate = new Date(reminder.original_day_time); // Convert epoch to readable date
+          remindAtRow.className = 'reminder-field';
+          remindAtRow.innerHTML = `Remind At: <span class="reminder-value">${remindAtDate.toLocaleString()}</span>`;
+          reminderCard.appendChild(remindAtRow);
+          
+          // Create and append repeat frequency row
+          const repeatFrequencyRow = document.createElement('div');
+          repeatFrequencyRow.className = 'reminder-field';
+          repeatFrequencyRow.innerHTML = `Repeat Frequency: <span class="reminder-value">${reminder.repeatFrequency}</span>`;
+          reminderCard.appendChild(repeatFrequencyRow);
+          
+          // Append the card to the container
+          remindersContainer.appendChild(reminderCard);
+        });
+      }
+
+      function displayRemindersTable(reminders) {
+        // Populate the table with fetched data
+        const tableBody = document.querySelector('#remindersTable tbody');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        reminders.forEach(reminder => {
+            const row = document.createElement('tr');
+          
+          const titleCell = document.createElement('td');
+          titleCell.textContent = reminder.name;
+
+          const descriptionCell = document.createElement('td');
+          descriptionCell.textContent = reminder.description;
+          
+          const remindAtCell = document.createElement('td');
+          const remindAtDate = new Date(reminder.original_day_time); // Convert epoch to readable date
+          remindAtCell.textContent = remindAtDate.toLocaleString(); // Convert to human-readable format
+          
+          const frequencyCell = document.createElement('td');
+          frequencyCell.textContent = reminder.repeatFrequency;
+          
+          // Append cells to the row
+          row.appendChild(titleCell);
+          row.appendChild(remindAtCell);
+          row.appendChild(descriptionCell);
+          row.appendChild(frequencyCell);
+          
+          // Append row to the table body
+          tableBody.appendChild(row);
+        });
+      }
+
+      // Display reminders in the list
+      function displayRemindersText(reminders) {
+        reminderListItems.innerHTML = "";
+        document.getElementById('output').textContent = "Reminder: " + reminders;
+        reminders.forEach((reminder) => {
+          const li = document.createElement("li");
+          li.textContent = `${reminder.name} - ${reminder.description} - ${new Date(reminder.original_day_time).toLocaleString()} - ${reminder.repeatFrequency}`;
+          reminderListItems.appendChild(li);
+        })
+      }
+
+      // Helper function to get the current time in epoch (milliseconds)
+    function getCurrentEpoch() {
+      return new Date().getTime();
+    }
+
+    // Helper function to round to the nearest minute
+    function roundToNextMinute(epochTime) {
+        try {
+            const currentEpoch = epochTime; // Current time in milliseconds
+            const oneMinuteInMilliseconds = 60 * 1000; // 1 minute = 60 seconds * 1000 milliseconds
+            const targetEpoch = currentEpoch + oneMinuteInMilliseconds; // Adding 1 minute
+            //date.setSeconds(0, 0); // Set seconds and milliseconds to 0 for exact minute
+            //alert('roundToNextMinute-', epochTime, date.getTime().toLocaleString());
+            return targetEpoch;
+        } catch (error) {
+            alert('eror while converting - ', error.message);
+        }
+      
+    }
+
+    // Function to call the backend API to get reminders
+    async function fetchRemindersInNextMinute() {
+      try {
+        const currentTime = getCurrentEpoch();
+        //const nextMinuteTime = roundToNextMinute(currentTime + 60000); // Next minute's time
+        const oneMinuteInMilliseconds = 60 * 1000; // 1 minute = 60 seconds * 1000 milliseconds
+        const targetEpoch = currentTime + oneMinuteInMilliseconds; // Adding 1 minute
+
+        
+        alert('calling get time range api');
+        const response = await fetch(`http://localhost:5000/reminder/get`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({"timeInMinutes": 60}),
+          });
+        const reminders = await response.json();
+        //document.getElementById('output').innerHTML = reminders;
+        if (reminders) {
+            // Check if there are reminders at the next minute
+            alert('calling check fn')
+            checkReminders(reminders.data, targetEpoch);
+        }
+        
+      } catch (error) {
+        document.getElementById('output').innerHTML = error;
+        alert('Error fetching reminders:', error.message);
+      }
+    }
+
+    // Function to check for reminders and show notifications
+    function checkReminders(reminders, targetEpoch) {
+        //alert('inside checkReminders')
+      const currentEpoch = getCurrentEpoch();
+      const targetDate = new Date(targetEpoch);
+      reminders.forEach(reminder => {
+        const remindTime = reminder.invoke_time; // Assume this is in epoch format (milliseconds)
+        alert(reminder.name, reminder.invoke_time);
+        //showPersistentNotification(reminder.name, reminder.invoke_time);
+        //const targetTime = roundToNextMinute(currentEpoch);
+        const invokeDate = new Date(remindTime);
+        
+        //alert('targetTime-', targetTime);
+        document.getElementById('output').innerHTML =  targetDate.getTime();
+        alert(invokeDate.getHours());
+        alert(targetDate.getHours());
+        alert(invokeDate.getMinutes());
+        alert(targetDate.getMinutes());
+        if (invokeDate.getHours() == targetDate.getHours() && invokeDate.getMinutes() == targetDate.getMinutes()) {
+          showPersistentNotification(reminder.name, reminder.original_day_time);
+        }
+      });
+    }
+
+    // Function to show notification using browser's Notification API
+    function showPersistentNotification(title, remindTime) {
+      // Check if browser supports notifications
+      if (Notification.permission === 'granted') {
+        const remindAtDate = new Date(remindTime);
+        const notification = new Notification('Reminder', {
+          body: `${title} at ${remindAtDate.toLocaleString()}`,
+          icon: 'https://example.com/reminder-icon.png', // Optional icon
+          requireInteraction: true, // Keeps the notification until the user clicks or dismisses it
+          silent: false
+        });
+
+        notification.onclick = function() {
+            window.focus(); // Bring the window into focus
+            alert('notification clicked');
+            notification.close(); // Close the notification when clicked
+      };
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            showPersistentNotification(title, remindTime);
+          }
+        });
+      }
+    }
+
+    // Call fetchReminders() every minute
+    setInterval(fetchRemindersInNextMinute, 60000); // 60000 milliseconds = 1 minute
+
+    // Run it immediately on page load
+    fetchRemindersInNextMinute();
+
+
+    </script>
+  </body>
+</html>
